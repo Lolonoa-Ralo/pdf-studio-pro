@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PDF Studio Pro | Lossless Client-Side PDF Editor</title>
+  <link rel="stylesheet" href="css/app.css?v=20261001_1">
+  
+  <!-- Local Libraries (Ultra-fast & Offline Reliable) with CDN Fallback -->
+  <script src="lib/pdf.min.js"></script>
+  <script src="lib/pdf-lib.min.js"></script>
+  <script>
+    if (!window.pdfjsLib) {
+      document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"><\/script>');
+    }
+    if (!window.PDFLib) {
+      document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"><\/script>');
+    }
+  </script>
+</head>
+<body>
+  <div id="app">
+    <!-- Topbar -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <div class="app-logo">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+          </svg>
+          <span data-i18n="appTitle">PDF Studio Pro</span>
+        </div>
+        <div class="file-info-badge" id="fileInfoBadge">
+          <span data-i18n="noFileLoaded">No document opened</span>
+        </div>
+      </div>
+
+      <div class="topbar-center" id="navControls" style="visibility: hidden;">
+        <!-- Page Nav -->
+        <div class="control-group">
+          <button class="btn btn-icon" id="prevPageBtn" data-i18n-title="prevPage" title="Previous Page">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
+          </button>
+          <div class="page-indicator">
+            <input type="number" id="pageNumberInput" value="1" min="1" max="1">
+            <span>/</span>
+            <span id="pageCountText">1</span>
+          </div>
+          <button class="btn btn-icon" id="nextPageBtn" data-i18n-title="nextPage" title="Next Page">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </button>
+        </div>
+
+        <!-- Zoom Nav -->
+        <div class="control-group">
+          <button class="btn btn-icon" id="zoomOutBtn" data-i18n-title="zoomOut" title="Zoom Out (Ctrl + -)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          </button>
+          <span class="zoom-level-text" id="zoomLevelText">100%</span>
+          <button class="btn btn-icon" id="zoomInBtn" data-i18n-title="zoomIn" title="Zoom In (Ctrl + +)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          </button>
+          <button class="btn btn-icon" id="zoomFitBtn" data-i18n-title="zoomFit" title="Fit to Width">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 9 9 4 9 9"></polyline><polyline points="20 15 15 20 15 15"></polyline></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="topbar-right">
+        <input type="file" id="fileInput" accept="application/pdf" style="display: none;">
+        <input type="file" id="imageInput" accept="image/*" style="display: none;">
+
+        <!-- Utility Buttons: Buy Me a Coffee, Language Toggle, Theme Toggle -->
+        <div class="nav-utils">
+          <a href="https://buymeacoffee.com/ralo2400" target="_blank" rel="noopener noreferrer" class="coffee-button" aria-label="Buy Me a Coffee" data-i18n-title="donateBtn" title="Buy Me a Coffee">
+            <span class="coffee-icon">☕</span>
+            <span class="coffee-text" data-i18n="donateBtn">Buy Me a Coffee</span>
+          </a>
+
+          <button class="btn-nav-util" id="langToggleBtn" data-i18n-title="toggleLang" title="한국어로 변경 (KO)">
+            🌐 <span id="currentLangLabel">KO</span>
+          </button>
+
+          <button class="btn-nav-util" id="themeToggleBtn" data-i18n-title="toggleTheme" title="Toggle Theme (Dark / Light)" style="padding: 6px 9px;">
+            <span id="themeIcon">☀️</span>
+          </button>
+        </div>
+
+        <div class="tool-separator"></div>
+        
+        <button class="btn btn-secondary" id="openPdfBtn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+          <span data-i18n="openPdf">Open PDF</span>
+        </button>
+
+        <button class="btn btn-secondary" id="samplePdfBtn" data-i18n-title="samplePdfTooltip" title="Instantly create & load an interactive sample contract PDF">
+          <span data-i18n="samplePdf">Try Sample PDF</span>
+        </button>
+
+        <button class="btn btn-gradient" id="downloadPdfBtn" disabled>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          <span data-i18n="downloadPdf">Download PDF</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Toolbar Ribbon -->
+    <nav class="tool-ribbon" id="toolRibbon">
+      <button class="tool-tab active" data-mode="select" id="toolSelect">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3l7 18 3-7 7-3L3 3z"></path></svg>
+        <span data-i18n="toolSelect">Select / Move</span>
+      </button>
+
+      <button class="tool-tab" data-mode="edit-text" id="toolEditText">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+        <span data-i18n="toolEditText">Edit Text</span>
+        <span class="badge" data-i18n="badgeRecommended">Auto</span>
+      </button>
+
+      <button class="tool-tab" data-mode="add-text" id="toolAddText">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 7 4 4 20 4 20 7"></polyline><line x1="9" y1="20" x2="15" y2="20"></line><line x1="12" y1="4" x2="12" y2="20"></line></svg>
+        <span data-i18n="toolAddText">New Text Box</span>
+      </button>
+
+      <button class="tool-tab" data-mode="add-image" id="toolAddImage">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+        <span data-i18n="toolAddImage">Attach Image</span>
+      </button>
+
+      <button class="tool-tab" data-mode="whiteout" id="toolWhiteout">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>
+        <span data-i18n="toolWhiteout">Whiteout Patch</span>
+      </button>
+
+      <div class="tool-separator"></div>
+
+      <button class="btn btn-icon" id="undoBtn" data-i18n-title="undoTooltip" title="Undo (Ctrl + Z)" disabled>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
+      </button>
+      <button class="btn btn-icon" id="redoBtn" data-i18n-title="redoTooltip" title="Redo (Ctrl + Y)" disabled>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+      </button>
+      <button class="btn btn-icon" id="deleteBtn" data-i18n-title="deleteTooltip" title="Delete Item (Delete)" disabled>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+      </button>
+
+      <div class="tool-separator"></div>
+
+      <button class="btn btn-secondary" id="resetEditsBtn" data-i18n-title="resetEditsTooltip" title="Revert all changes on this page back to original PDF" style="padding: 4px 10px; font-size: 0.8rem; gap: 5px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+        <span data-i18n="resetEditsBtn">Reset Page</span>
+      </button>
+    </nav>
+
+    <!-- Main Workspace -->
+    <main class="workspace">
+      <!-- Left Sidebar: Page Thumbnails -->
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+          <span data-i18n="sidebarTitle">Page Thumbnails</span>
+          <button class="btn btn-icon" id="toggleSidebarBtn" data-i18n-title="toggleSidebarTooltip" title="Collapse/Expand Sidebar">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="11 17 6 12 11 7"></polyline><polyline points="18 17 13 12 18 7"></polyline></svg>
+          </button>
+        </div>
+        <div class="thumbnail-list" id="thumbnailList"></div>
+      </aside>
+
+      <!-- Center Viewport -->
+      <section class="canvas-viewport" id="canvasViewport">
+        <!-- Empty State -->
+        <div class="empty-state" id="emptyState">
+          <div class="empty-icon-wrap">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+          </div>
+          <h2 class="empty-title" data-i18n="emptyTitle">Open a PDF to start editing</h2>
+          <p class="empty-desc" data-i18n="emptyDesc">
+            Drag and drop your PDF here or choose from your computer.<br>
+            <strong>100% Client-Side. Tables, vectors, and layouts remain perfectly preserved without breaking.</strong>
+          </p>
+          <div class="empty-actions">
+            <button class="btn btn-primary" id="emptyOpenBtn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+              <span data-i18n="emptyOpenBtn">Choose PDF from Computer</span>
+            </button>
+            <button class="btn btn-secondary" id="emptySampleBtn">
+              <span data-i18n="emptySampleBtn">Start with Sample Contract</span>
+            </button>
+          </div>
+          <div class="empty-features">
+            <div class="feature-item">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+              <span data-i18n="featureLossless">100% Lossless Vectors & Tables</span>
+            </div>
+            <div class="feature-item">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+              <span data-i18n="featureTextEdit">1-Click Existing Text Editing</span>
+            </div>
+            <div class="feature-item">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+              <span data-i18n="featureImages">Drag & Drop Image Insertion</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dynamic Page Container will be appended here -->
+        <div id="pageContainerWrapper" style="display: none;"></div>
+      </section>
+
+      <!-- Right Inspector Panel -->
+      <aside class="inspector" id="inspector">
+        <div class="inspector-header">
+          <span id="inspectorTitle" data-i18n="inspectorTitle">Properties</span>
+        </div>
+        <div class="inspector-body" id="inspectorBody">
+          <!-- Text Properties -->
+          <div id="textProps" class="prop-section" style="display: none;">
+            <div class="prop-title" data-i18n="textPropsTitle">Text Formatting</div>
+            <div class="prop-row">
+              <span class="prop-label" data-i18n="fontFamily">Font</span>
+              <select class="select-input" id="propFontFamily">
+                <option value="Pretendard, 'Noto Sans KR', sans-serif">Pretendard (Clean Gothic)</option>
+                <option value="'Nanum Myeongjo', 'Batang', serif">Nanum Myeongjo (Serif)</option>
+                <option value="'Noto Sans KR', sans-serif">Noto Sans KR</option>
+                <option value="'Batang', serif">Batang (바탕체)</option>
+                <option value="'Gulim', sans-serif">Gulim (굴림체)</option>
+                <option value="'Arial', sans-serif">Arial</option>
+                <option value="'Times New Roman', serif">Times New Roman</option>
+              </select>
+            </div>
+            <div class="prop-row">
+              <span class="prop-label" data-i18n="fontSize">Size</span>
+              <div class="prop-control">
+                <input type="number" class="input-number" id="propFontSize" value="14" min="8" max="100">
+                <span style="font-size: 0.8rem; color: var(--text-dim);">px</span>
+              </div>
+            </div>
+            <div class="prop-row">
+              <span class="prop-label" data-i18n="fontColor">Text Color</span>
+              <input type="color" class="input-color" id="propColor" value="#000000">
+            </div>
+            <div class="prop-row">
+              <span class="prop-label" data-i18n="fontStyle">Style</span>
+              <div class="segmented-control">
+                <button class="segment-btn" id="propBoldBtn" data-i18n-title="boldTooltip" title="Bold"><strong>B</strong></button>
+                <button class="segment-btn" id="propItalicBtn" data-i18n-title="italicTooltip" title="Italic"><em>I</em></button>
+              </div>
+            </div>
+            <div class="prop-row">
+              <span class="prop-label" data-i18n="bgPatch">Background Patch</span>
+              <div class="prop-control">
+                <input type="color" class="input-color" id="propBgColor" value="#ffffff">
+                <label style="font-size: 0.75rem; color: var(--text-muted); display:flex; align-items:center; gap:4px;">
+                  <input type="checkbox" id="propBgTransparent"> <span data-i18n="bgTransparent">Transparent</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Image Properties -->
+          <div id="imageProps" class="prop-section" style="display: none;">
+            <div class="prop-title" data-i18n="imagePropsTitle">Image Settings</div>
+            <div class="prop-row">
+              <span class="prop-label" data-i18n="opacity">Opacity</span>
+              <input type="range" id="propOpacity" min="10" max="100" value="100" style="width: 100px;">
+              <span id="propOpacityVal" style="font-size: 0.8rem; color: var(--text-muted);">100%</span>
+            </div>
+            <div class="prop-row">
+              <button class="btn btn-secondary" id="propBringForward" style="flex:1;" data-i18n="bringForward">Bring to Front</button>
+              <button class="btn btn-secondary" id="propSendBackward" style="flex:1;" data-i18n="sendBackward">Send to Back</button>
+            </div>
+          </div>
+
+          <!-- Whiteout Properties -->
+          <div id="whiteoutProps" class="prop-section" style="display: none;">
+            <div class="prop-title" data-i18n="whiteoutPropsTitle">Whiteout Settings</div>
+            <div class="prop-row">
+              <span class="prop-label" data-i18n="patchColor">Patch Color</span>
+              <input type="color" class="input-color" id="propWhiteoutColor" value="#ffffff">
+            </div>
+          </div>
+
+          <!-- Common Actions -->
+          <div id="commonProps" class="prop-section" style="display: none;">
+            <div class="prop-separator" style="height:1px; background:var(--border-color); margin: 8px 0;"></div>
+            <button class="btn btn-danger" id="propDeleteBtn" style="width: 100%;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+              <span data-i18n="deleteItem">Delete Item</span>
+            </button>
+          </div>
+
+          <!-- Document Info when nothing is selected -->
+          <div id="docInfoProps" class="prop-section">
+            <div class="prop-title" data-i18n="docInfoTitle">Getting Started</div>
+            <div style="font-size: 0.82rem; color: var(--text-muted); line-height: 1.6;">
+              <p><strong data-i18n="docGuideTitle">💡 How to Edit Text:</strong></p>
+              <ol style="margin-left: 18px; margin-top: 6px;">
+                <li data-i18n="docGuide1">1. Select <strong>[Edit Text]</strong> in the top toolbar.</li>
+                <li data-i18n="docGuide2">2. Click on any text you want to change.</li>
+                <li data-i18n="docGuide3">3. Type directly with your keyboard!</li>
+              </ol>
+              <p style="margin-top: 14px;"><strong data-i18n="docGuideImgTitle">🖼️ Image Insertion:</strong></p>
+              <ul style="margin-left: 18px; margin-top: 6px;">
+                <li data-i18n="docGuideImg1">Click [Attach Image] or copy an image and press <code>Ctrl + V</code>.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </main>
+
+
+    <!-- Toast Notification Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Loading Spinner Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+      <div class="spinner"></div>
+      <div class="loading-text" id="loadingText" data-i18n="loadingParsing">Analyzing and rendering PDF document...</div>
+    </div>
+  </div>
+
+  <!-- JavaScript Modules -->
+  <script src="js/i18n.js?v=20261001_2"></script>
+  <script src="js/pdf-manager.js?v=20261001_2"></script>
+  <script src="js/editor.js?v=20261001_2"></script>
+  <script src="js/app.js?v=20261001_2"></script>
+</body>
+</html>
